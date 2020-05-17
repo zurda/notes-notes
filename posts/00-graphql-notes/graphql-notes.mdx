@@ -587,6 +587,227 @@ Once we’ve checked Luna back in, when we run the all customers query we should
           }
 ```
 
+
+**Fragments** 
+
+Let’s talk about readability. If we wanted to get all pets that match a certain status and category, we could do this: 
+
+```
+query AllPets {
+  allPets (category:RABBIT status: AVAILABLE) {
+    name
+    category
+    weight
+	  status
+  }
+}
+```
+
+But what if we notice we keep getting the same 4 fields of pets over and over again. It’d be nice if we could name that and type less each time. 
+
+This is where fragments come in: 
+
+```
+query AllPets {
+  allPets (category:RABBIT status: AVAILABLE) {
+    ...PetDetails
+  }
+}
+
+fragment PetDetails on Pet {
+    name
+    category
+    weight
+    status
+}
+```
+
+We’re naming the field we’re interested in as a Fragment on the Pet type. We then spread the fragment using the `...` inside the query. 
+
+You could use the fragment multiple times inside one query, for example: 
+
+```
+query AllPets {
+  petById(id: "C-1") {
+    ...PetDetails
+    inCareOf {
+      ...CustomerDetails
+    }
+  }
+  allPets(category: RABBIT, status: AVAILABLE) {
+    ...PetDetails
+  }
+}
+
+fragment PetDetails on Pet {
+  name
+  category
+  weight
+  status
+}
+
+fragment CustomerDetails on Customer {
+  name
+  username
+}
+```
+
+**Using a refactored API:** 
+
+For the next section, we’ll use https://funded-pet-library.moonhighway.com/, which is our current api with additional queries. It allows us to get the same data, but it has endpoints for things that we used to have to filter to get to in the previous API. 
+
+```
+query {
+  customersWithPets {
+    username
+    name
+  }
+  totalPets
+  availablePets
+  checkedOutPets
+}
+```
+
+**Interfaces**
+
+An interface is an abstract type that includes a set of fields. These fields must be used when creating new instances of that interface. 
+
+We have an interface called Pet. This is the base class. It has certain fields on it.
+
+We have several different implementations of that interface. Remember, our numerator from before that had Cat, Dog, Rabbit, and Stingray, these are now implementations of this interface.
+
+Each category is a separate type that implements the Pet interface. It has all of the different fields that are part of that interface, but then we can extent it. For example, the Cat interface implementation has a couple of different ones, so _sleep amount_ and _curious_ are now available on that Cat.
+
+If I want to see which one is which, we can query the _ _ typename field, this will give me the data about what type of pet we’re querying.
+
+
+```
+query {
+  allPets {
+    __typename
+    id
+    name
+  }
+}
+```
+
+When we write a query of an interface we can use the fragment with a slightly different syntax: 
+
+```
+query {
+  allPets {
+    __typename
+    id
+    name
+    … on Cat {
+      sleepAmount
+    }
+    … on Stimgray {
+      chill
+    }
+  }
+}
+```
+
+An interface gives us a little bit more flexibility when we’re designing our domain’s objects. We have a pet, that is an interface. Some base fields on that pet interface, and then we can create implementations of that interface and then create custom fields for each additional pet type.
+
+**Union**
+
+We use unions when we want to return lists of multiple types. For example, the FamilyPets field returns a list of FamilyPets, either a cat or a dog.
+
+Unions don’t have to share any fields. If I tried to query for the name field for each of these, we’re going to see an error: 
+
+```
+ "message": "Cannot query field \"name\" on type \"FamilyPet\". Did you mean to use an inline fragment on \"Pet\", \"Cat\", or \"Dog\"?",
+```
+
+Despite the fact that both types have a `name` , we can’t query the name field this way. We have to use a fragment: 
+
+```
+query {
+  familyPets {
+    __typename
+    ... on Cat {
+      name
+      sleepAmount
+    }
+    ... on Dog {
+      name
+      good
+    }
+  }
+}
+```
+
+We use unions whenever we want to return a list of multiple types. You could use this for a number union that returns either an Int or a Float.
+
+**Subscriptions:**
+
+The next step is I want to add a subscription. Let’s add a new tab. We’re going to add our subscription here. These, as we saw, are named just like queries and mutations. This time, it’s going to be called petReturned. 
+
+As soon as I click play, we’re going to notice some different behaviour. This is listening for any changes, so it’s not a request and a response. Instead, we’re listening over a web socket.
+
+```
+subscription {
+  petReturned {
+		name
+  }
+}
+```
+
+If we open another tab and change the data somehow, for example checkout a pet, if I switch back to our subscription, we see that the petReturned subscription has heard some new data. The GraphQL subscription is very useful. Whenever you have any real-time needs in your application, you’re going to use a subscription. Then we can use a mutation to trigger that change.
+
+**Querying the schema**
+
+Graphql playground makes it extra easy to look at the schema and view the structure of our API. If you happen to want to look at the schema and don’t have the playground, you could use the queries to get the schema. For our current API it would look something like this: 
+
+```
+query Customer {
+  __type(name: "Customer") {
+    fields {
+      name
+      description
+    }
+  }
+}
+
+query AllTypes {
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}
+
+query AvailableQueries {
+  __schema {
+    queryType {
+      fields {
+        name
+        description
+      }
+    }
+  }
+}
+
+query InterfaceTypes {
+  __type(name: "Pet") {
+    kind
+    name
+    description
+    possibleTypes {
+      name
+      kind
+      description
+    }
+  }
+}
+``` 
+
+
+
 **Apollo client:** 
 Encapsulates HTTP logic used to interact with a graphQL API. The Apollo client saves us setting up a fetcher, etc. Apollo client stores state for the data we get back from the server, it’s also possible to store state that’s created locally on the client side. It depends on no framework. Has nothing to do with a framework (used to be built on top of redux - but no more). You drop it in, and it just works. 
 
