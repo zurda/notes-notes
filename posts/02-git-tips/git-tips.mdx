@@ -1,0 +1,67 @@
+---
+title: Git notes
+slug: git-notes
+author: Michal Weisman
+image: images/git.png
+---
+
+
+### Interactive committing: 
+
+`git add -p`
+
+Asks before adds to staging area. 
+
+
+### Untracked files and stash 
+
+`git stash --include-untracked`
+
+By default the  [stash](https://git-scm.com/docs/git-stash)  command will not include untracked files.
+To include untracked files, use the -u (—include-untracked) flag:
+
+`git stash -u`
+
+If the *—include-untracked* option is used, all untracked files are also stashed and then cleaned up with git clean, leaving the working directory in a very clean state.
+
+### Applying stashed files (other than latest)
+
+`git stash apply n`: applying anything other than latest stashed work. 
+
+Start a branch from a stash: 
+`git stash branch <optional branch name>`
+
+Stash with name: 
+`git stash save "Some name"`
+
+### Cleaning’s stashes 
+`git stash clear` or `git stash pop` to use latest, or `git stash drop` to remove latest. 
+
+### See all stashes: 
+`git stash list`
+
+### RERERE
+
+Git can record our resolutions, and keep reusing it to save us time rebasing. 
+
+`git config rerere.enabled true`
+Or 
+
+`git config —global rerere.enabled true`
+
+To turn off: 
+
+`git config —global rerere.enabled false`
+
+
+### Checkout to the latest branch you were on 
+
+`git checkout -`
+
+### Viewing stages changes: 
+
+`git diff --staged`
+
+### Follow a file 
+
+`git log —name-status —follow —oneline hello.template`
